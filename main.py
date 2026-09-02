@@ -28,6 +28,7 @@ app.add_middleware(
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "https://back-movilidad-q9ckshrh6-fati2809s-projects.vercel.app",
+        "https://secretariademovilidad.netlify.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
