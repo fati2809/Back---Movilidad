@@ -1,16 +1,16 @@
 ## Correo en producción
 
-El envío usa la API HTTPS de SendGrid, por lo que no depende de que el servidor
+El envío usa la API HTTPS de Brevo, por lo que no depende de que el servidor
 público permita conexiones SMTP salientes.
 
 Configura estas variables de entorno en el servidor:
 
 ```env
-SENDGRID_API_KEY=SG.xxxxxxxxxxxxxxxxx
-SENDGRID_FROM=Movilidad <correo@dominio-verificado.com>
+BREVO_API_KEY=xkeysib-xxxxxxxxxxxxxxxxx
+BREVO_FROM=Movilidad <correo@dominio-verificado.com>
 ```
 
-En SendGrid debes verificar el remitente o el dominio antes de usarlo.
+En Brevo debes verificar el remitente o el dominio antes de usarlo.
 
 ## Autenticación
 

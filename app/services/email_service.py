@@ -7,7 +7,7 @@ import httpx
 from dotenv import load_dotenv
 
 
-SENDGRID_URL = "https://api.sendgrid.com/v3/mail/send"
+BREVO_URL = "https://api.brevo.com/v3/smtp/email"
 BASE_DIR = Path(__file__).resolve().parents[2]
 load_dotenv(BASE_DIR / ".env")
 
@@ -18,12 +18,12 @@ async def _enviar_correo(
     cuerpo,
     archivo=None
 ):
-    api_key = os.getenv("SENDGRID_API_KEY")
-    remitente = os.getenv("SENDGRID_FROM")
+    api_key = os.getenv("BREVO_API_KEY")
+    remitente = os.getenv("BREVO_FROM")
 
     if not api_key or not remitente:
         raise RuntimeError(
-            "Configura SENDGRID_API_KEY y SENDGRID_FROM en las variables de entorno"
+            "Configura BREVO_API_KEY y BREVO_FROM en las variables de entorno"
         )
 
     nombre_remitente, correo_remitente = parseaddr(remitente)
@@ -31,31 +31,27 @@ async def _enviar_correo(
         correo_remitente = remitente
 
     datos = {
-        "personalizations": [{
-            "to": [{"email": destinatario}],
-        }],
-        "from": {"email": correo_remitente},
+        "sender": {"email": correo_remitente},
+        "to": [{"email": destinatario}],
         "subject": asunto,
-        "content": [{"type": "text/plain", "value": cuerpo}],
+        "textContent": cuerpo,
     }
 
     if nombre_remitente:
-        datos["from"]["name"] = nombre_remitente
+        datos["sender"]["name"] = nombre_remitente
 
     if archivo:
         ruta = Path(archivo)
-        datos["attachments"] = [{
+        datos["attachment"] = [{
             "content": base64.b64encode(ruta.read_bytes()).decode("ascii"),
-            "filename": ruta.name,
-            "type": "application/pdf",
-            "disposition": "attachment",
+            "name": ruta.name,
         }]
 
     async with httpx.AsyncClient(timeout=30) as cliente:
         respuesta = await cliente.post(
-            SENDGRID_URL,
+            BREVO_URL,
             headers={
-                "Authorization": f"Bearer {api_key}",
+                "api-key": api_key,
                 "Content-Type": "application/json",
             },
             json=datos,
@@ -63,7 +59,7 @@ async def _enviar_correo(
 
     if respuesta.is_error:
         raise RuntimeError(
-            f"SendGrid rechazó el correo ({respuesta.status_code}): {respuesta.text}"
+            f"Brevo rechazó el correo ({respuesta.status_code}): {respuesta.text}"
         )
 
 
