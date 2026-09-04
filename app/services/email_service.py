@@ -1,11 +1,15 @@
 import base64
 import os
+from email.utils import parseaddr
 from pathlib import Path
 
 import httpx
+from dotenv import load_dotenv
 
 
-RESEND_URL = "https://api.resend.com/emails"
+SENDGRID_URL = "https://api.sendgrid.com/v3/mail/send"
+BASE_DIR = Path(__file__).resolve().parents[2]
+load_dotenv(BASE_DIR / ".env")
 
 
 async def _enviar_correo(
@@ -14,31 +18,42 @@ async def _enviar_correo(
     cuerpo,
     archivo=None
 ):
-    api_key = os.getenv("RESEND_API_KEY")
-    remitente = os.getenv("RESEND_FROM")
+    api_key = os.getenv("SENDGRID_API_KEY")
+    remitente = os.getenv("SENDGRID_FROM")
 
     if not api_key or not remitente:
         raise RuntimeError(
-            "Configura RESEND_API_KEY y RESEND_FROM en las variables de entorno"
+            "Configura SENDGRID_API_KEY y SENDGRID_FROM en las variables de entorno"
         )
 
+    nombre_remitente, correo_remitente = parseaddr(remitente)
+    if not correo_remitente:
+        correo_remitente = remitente
+
     datos = {
-        "from": remitente,
-        "to": [destinatario],
+        "personalizations": [{
+            "to": [{"email": destinatario}],
+        }],
+        "from": {"email": correo_remitente},
         "subject": asunto,
-        "text": cuerpo,
+        "content": [{"type": "text/plain", "value": cuerpo}],
     }
+
+    if nombre_remitente:
+        datos["from"]["name"] = nombre_remitente
 
     if archivo:
         ruta = Path(archivo)
         datos["attachments"] = [{
-            "filename": ruta.name,
             "content": base64.b64encode(ruta.read_bytes()).decode("ascii"),
+            "filename": ruta.name,
+            "type": "application/pdf",
+            "disposition": "attachment",
         }]
 
     async with httpx.AsyncClient(timeout=30) as cliente:
         respuesta = await cliente.post(
-            RESEND_URL,
+            SENDGRID_URL,
             headers={
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
@@ -48,7 +63,7 @@ async def _enviar_correo(
 
     if respuesta.is_error:
         raise RuntimeError(
-            f"Resend rechazó el correo ({respuesta.status_code}): {respuesta.text}"
+            f"SendGrid rechazó el correo ({respuesta.status_code}): {respuesta.text}"
         )
 
 

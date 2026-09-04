@@ -1,16 +1,16 @@
 ## Correo en producción
 
-El envío usa la API HTTPS de Resend, por lo que no depende de que el servidor
+El envío usa la API HTTPS de SendGrid, por lo que no depende de que el servidor
 público permita conexiones SMTP salientes.
 
 Configura estas variables de entorno en el servidor:
 
 ```env
-RESEND_API_KEY=re_xxxxxxxxx
-RESEND_FROM=Movilidad <correo@tu-dominio-verificado.com>
+SENDGRID_API_KEY=SG.xxxxxxxxxxxxxxxxx
+SENDGRID_FROM=Movilidad <correo@dominio-verificado.com>
 ```
 
-En Resend debes verificar el dominio del remitente antes de usarlo.
+En SendGrid debes verificar el remitente o el dominio antes de usarlo.
 
 ## Autenticación
 
