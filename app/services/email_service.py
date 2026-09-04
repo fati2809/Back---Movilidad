@@ -1,20 +1,55 @@
-from fastapi_mail import (
-    FastMail,
-    MessageSchema,
-    ConnectionConfig
-)
+import base64
+import os
+from pathlib import Path
+
+import httpx
 
 
-conf = ConnectionConfig(
-    MAIL_USERNAME="lopez.uribe.fatima@gmail.com",
-    MAIL_PASSWORD="ypqf spfs xrim czme",
-    MAIL_FROM="lopez.uribe.fatima@gmail.com",
-    MAIL_FROM_NAME="Movilidad",
-    MAIL_PORT=587,
-    MAIL_SERVER="smtp.gmail.com",
-    MAIL_STARTTLS=True,
-    MAIL_SSL_TLS=False
-)
+RESEND_URL = "https://api.resend.com/emails"
+
+
+async def _enviar_correo(
+    destinatario,
+    asunto,
+    cuerpo,
+    archivo=None
+):
+    api_key = os.getenv("RESEND_API_KEY")
+    remitente = os.getenv("RESEND_FROM")
+
+    if not api_key or not remitente:
+        raise RuntimeError(
+            "Configura RESEND_API_KEY y RESEND_FROM en las variables de entorno"
+        )
+
+    datos = {
+        "from": remitente,
+        "to": [destinatario],
+        "subject": asunto,
+        "text": cuerpo,
+    }
+
+    if archivo:
+        ruta = Path(archivo)
+        datos["attachments"] = [{
+            "filename": ruta.name,
+            "content": base64.b64encode(ruta.read_bytes()).decode("ascii"),
+        }]
+
+    async with httpx.AsyncClient(timeout=30) as cliente:
+        respuesta = await cliente.post(
+            RESEND_URL,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            json=datos,
+        )
+
+    if respuesta.is_error:
+        raise RuntimeError(
+            f"Resend rechazó el correo ({respuesta.status_code}): {respuesta.text}"
+        )
 
 
 # =====================================================
@@ -25,30 +60,11 @@ async def enviar_pdf_correo(
     correo,
     archivo
 ):
-
-    mensaje = MessageSchema(
-
-        subject="Boleta de infracción",
-
-        recipients=[
-            correo
-        ],
-
-        body="""
-        Se adjunta la boleta de infracción generada.
-        """,
-
-        attachments=[
-            archivo
-        ],
-
-        subtype="plain"
-    )
-
-    fm = FastMail(conf)
-
-    await fm.send_message(
-        mensaje
+    await _enviar_correo(
+        correo,
+        "Boleta de infracción",
+        "Se adjunta la boleta de infracción generada.",
+        archivo,
     )
 
 
@@ -60,16 +76,10 @@ async def enviar_codigo_correo(
     correo,
     codigo
 ):
-
-    mensaje = MessageSchema(
-
-        subject="Código de verificación",
-
-        recipients=[
-            correo
-        ],
-
-        body=f"""
+    await _enviar_correo(
+        correo,
+        "Código de verificación",
+        f"""
         Código de verificación de Movilidad:
 
         {codigo}
@@ -77,14 +87,6 @@ async def enviar_codigo_correo(
 
         Si usted no solicitó este código ignore este mensaje.
         """,
-
-        subtype="plain"
-    )
-
-    fm = FastMail(conf)
-
-    await fm.send_message(
-        mensaje
     )
 
 
@@ -96,16 +98,10 @@ async def enviar_correo_usuario(
     correo,
     password
 ):
-
-    mensaje = MessageSchema(
-
-        subject="Cuenta creada - Movilidad",
-
-        recipients=[
-            correo
-        ],
-
-        body=f"""
+    await _enviar_correo(
+        correo,
+        "Cuenta creada - Movilidad",
+        f"""
         Bienvenido al sistema de Movilidad.
 
         Tu cuenta fue creada correctamente.
@@ -130,14 +126,6 @@ async def enviar_correo_usuario(
         Si usted no solicitó esta cuenta,
         contacte al administrador.
         """,
-
-        subtype="plain"
-    )
-
-    fm = FastMail(conf)
-
-    await fm.send_message(
-        mensaje
     )
 
 
@@ -149,16 +137,10 @@ async def enviar_correo_recuperacion(
     correo,
     password
 ):
-
-    mensaje = MessageSchema(
-
-        subject="Recuperación de contraseña - Movilidad",
-
-        recipients=[
-            correo
-        ],
-
-        body=f"""
+    await _enviar_correo(
+        correo,
+        "Recuperación de contraseña - Movilidad",
+        f"""
         Hola,
 
         Se ha solicitado la recuperación de contraseña
@@ -179,12 +161,4 @@ async def enviar_correo_recuperacion(
         Si usted no solicitó recuperar su contraseña,
         contacte al administrador.
         """,
-
-        subtype="plain"
-    )
-
-    fm = FastMail(conf)
-
-    await fm.send_message(
-        mensaje
     )

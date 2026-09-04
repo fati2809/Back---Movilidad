@@ -1,3 +1,17 @@
+## Correo en producción
+
+El envío usa la API HTTPS de Resend, por lo que no depende de que el servidor
+público permita conexiones SMTP salientes.
+
+Configura estas variables de entorno en el servidor:
+
+```env
+RESEND_API_KEY=re_xxxxxxxxx
+RESEND_FROM=Movilidad <correo@tu-dominio-verificado.com>
+```
+
+En Resend debes verificar el dominio del remitente antes de usarlo.
+
 ## Autenticación
 
 ### POST /auth/login
